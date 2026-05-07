@@ -1,12 +1,18 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { authService } from '../../../services/auth';
+import { useAuth } from '../../../context/AuthContext';
 
 export default function VerifyScreen() {
+  const router = useRouter();
+  const { refreshAuth } = useAuth();
+  const { email } = useLocalSearchParams<{ email: string }>();
   const [code, setCode] = useState(['', '', '', '']);
+  const [loading, setLoading] = useState(false);
   const inputs = useRef<TextInput[]>([]);
 
   const handleTextChange = (text: string, index: number) => {
@@ -22,6 +28,26 @@ export default function VerifyScreen() {
   const handleKeyPress = (e: any, index: number) => {
     if (e.nativeEvent.key === 'Backspace' && !code[index] && index > 0) {
       inputs.current[index - 1].focus();
+    }
+  };
+
+  const handleVerify = async () => {
+    const fullCode = code.join('');
+    if (fullCode.length < 4) {
+      Alert.alert("Error", "Please enter the complete 4-digit code");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await authService.verifyOtp(email || '', fullCode);
+      await refreshAuth();
+      // Navigate to success screen on successful verification
+      router.push('/signup/success');
+    } catch (error: any) {
+      Alert.alert("Verification Failed", error?.message || "Invalid code. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -45,7 +71,7 @@ export default function VerifyScreen() {
           <Text className="text-4xl font-bold text-[#3D2117] mb-4">Verify Code</Text>
           <Text className="text-[#8E9BAE] text-center text-base leading-6">
             Please enter the code we just sent to{'\n'}
-            <Text className="text-[#FF8A00]">example22@gmail.com</Text>
+            <Text className="text-[#FF8A00]">{email || 'your email'}</Text>
           </Text>
         </View>
 
@@ -70,16 +96,26 @@ export default function VerifyScreen() {
         <View className="items-center">
           <Text className="text-[#8E9BAE] text-sm">
             Didn't receive the email?{' '}
-            <Text className="text-[#007AFF] font-bold">Click to Verification Code</Text>
+            <TouchableOpacity onPress={async () => {
+              try {
+                await authService.resendOtp(email || '');
+                Alert.alert("Success", "New verification code sent to your email");
+              } catch (error: any) {
+                Alert.alert("Error", error?.message || "Failed to resend code");
+              }
+            }}>
+              <Text className="text-[#007AFF] font-bold">Resend Code</Text>
+            </TouchableOpacity>
           </Text>
         </View>
 
         <View className="flex-1 justify-end pb-10">
           <TouchableOpacity
-            onPress={() => router.push('/signup/success')}
-            className="w-full bg-[#007AFF] py-5 rounded-2xl items-center shadow-sm"
+            onPress={handleVerify}
+            disabled={loading}
+            className={`w-full py-5 rounded-2xl items-center shadow-sm ${loading ? 'bg-blue-300' : 'bg-[#007AFF]'}`}
           >
-            <Text className="text-white text-lg font-bold">Verify</Text>
+            {loading ? <ActivityIndicator color="white" /> : <Text className="text-white text-lg font-bold">Verify</Text>}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

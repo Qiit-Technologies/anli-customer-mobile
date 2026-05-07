@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useAuth } from "../context/AuthContext";
+import * as SecureStore from 'expo-secure-store';
+
+const HAS_ONBOARDED_KEY = 'has_onboarded';
 
 const { width } = Dimensions.get("window");
 
@@ -40,20 +44,44 @@ const ONBOARDING_DATA = [
 export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+  const { isLoggedIn, isLoading } = useAuth();
+  const [hasOnboarded, setHasOnboarded] = useState<boolean | null>(null);
 
-  const handleNext = () => {
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      const onboarded = await SecureStore.getItemAsync(HAS_ONBOARDED_KEY);
+      setHasOnboarded(onboarded === 'true');
+    };
+    checkOnboarding();
+  }, []);
+
+  // Redirect if already onboarded or logged in
+  useEffect(() => {
+    if (isLoading || hasOnboarded === null) return;
+
+    if (isLoggedIn || hasOnboarded) {
+      router.replace("/(tabs)");
+    }
+  }, [isLoggedIn, isLoading, hasOnboarded]);
+
+  const completeOnboarding = async () => {
+    await SecureStore.setItemAsync(HAS_ONBOARDED_KEY, 'true');
+  };
+
+  const handleNext = async () => {
     if (currentIndex < ONBOARDING_DATA.length - 1) {
       flatListRef.current?.scrollToIndex({
         index: currentIndex + 1,
         animated: true,
       });
     } else {
-      // Navigate to Sign Up
-      router.push('/signup');
+      await completeOnboarding();
+      router.push("/signup");
     }
   };
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
+    await completeOnboarding();
     router.push("/(guest)");
   };
 
@@ -100,7 +128,7 @@ export default function OnboardingScreen() {
               {/* Image Circle Container */}
               <View className="w-[300px] h-[300px] items-center justify-center relative mb-12">
                 {/* Outer offset circle */}
-                <View className="absolute w-[320px] h-[320px] rounded-full border-[4px] border-[#F9D5B4] top-2 left-2" />
+                <View className="absolute w-[320px] h-[320px] rounded-full border-[4px] border-[#F9D5B4] top-[-10px] left-[-1px]" />
                 {/* Image */}
                 <Image
                   source={item.image}
@@ -140,7 +168,10 @@ export default function OnboardingScreen() {
           <Text className="text-gray-600 text-base">
             Already have an account?{" "}
           </Text>
-          <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
+          <TouchableOpacity onPress={async () => {
+            await completeOnboarding();
+            router.push("/(auth)/login");
+          }}>
             <Text className="text-[#FF8A00] text-base font-semibold">
               Login
             </Text>

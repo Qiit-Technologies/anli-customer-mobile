@@ -1,54 +1,39 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-
-const SEARCH_RESULTS = [
-  {
-    id: '1',
-    name: 'Cactus Restaurant',
-    rating: '4.8/5',
-    tags: 'Japanese, Sushi . $$$',
-    hours: 'Open now 10:00 am close 11 : pm',
-    image: 'https://images.unsplash.com/photo-1552332386-f8dd00dc2f85?auto=format&fit=crop&w=300&q=80',
-  },
-  {
-    id: '2',
-    name: 'Orchid Bistro',
-    rating: '4.5/5',
-    tags: 'Continental, Cafe . $$',
-    hours: 'Open now 08:00 am close 10 : pm',
-    image: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=300&q=80',
-  },
-  {
-    id: '3',
-    name: 'Terra Kulture',
-    rating: '4.7/5',
-    tags: 'Nigerian, Grill . $$$',
-    hours: 'Open now 09:00 am close 11 : pm',
-    image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=300&q=80',
-  },
-  {
-    id: '4',
-    name: 'Sky Restaurant',
-    rating: '4.9/5',
-    tags: 'Fine Dining, View . $$$$',
-    hours: 'Open now 12:00 pm close 12 : am',
-    image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=300&q=80',
-  },
-];
+import { hotelService, Hotel } from '../../services/hotel';
 
 export default function SearchScreen() {
   const router = useRouter();
   const [query, setQuery] = useState('');
+  const [results, setResults] = useState<Hotel[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const filteredResults = SEARCH_RESULTS.filter(item => 
-    item.name.toLowerCase().includes(query.toLowerCase()) || 
-    item.tags.toLowerCase().includes(query.toLowerCase())
-  );
+  // Simple debounce logic
+  useEffect(() => {
+    if (!query || query.trim().length < 2) {
+      setResults([]);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const data = await hotelService.search(query.trim());
+        setResults(data);
+      } catch (error) {
+        console.error("Search error:", error);
+      } finally {
+        setLoading(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [query]);
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -78,8 +63,11 @@ export default function SearchScreen() {
               className="flex-1 ml-3 text-sm text-gray-800"
               value={query}
               onChangeText={setQuery}
+              autoFocus
             />
-            {query.length > 0 && (
+            {loading ? (
+              <ActivityIndicator size="small" color="#007AFF" />
+            ) : query.length > 0 && (
               <TouchableOpacity onPress={() => setQuery('')}>
                 <Ionicons name="close-circle" size={20} color="#CBD5E0" />
               </TouchableOpacity>
@@ -87,22 +75,24 @@ export default function SearchScreen() {
           </View>
         </View>
 
-        {/* Results Section - Only shown if query exists */}
+        {/* Results Section */}
         {query.length > 0 ? (
           <View className="px-6 pb-20">
-            <Text className="text-lg font-bold text-[#3D2117] mb-6">Search results</Text>
+            <Text className="text-lg font-bold text-[#3D2117] mb-6">
+              {loading ? 'Searching...' : `Search results (${results.length})`}
+            </Text>
             
-            {filteredResults.length > 0 ? (
-              filteredResults.map((item) => (
+            {results.length > 0 ? (
+              results.map((item) => (
                 <TouchableOpacity 
                   key={item.id} 
                   onPress={() => router.push(`/restaurant/${item.id}`)}
                   className="flex-row mb-8"
                 >
                   {/* Thumbnail */}
-                  <View className="w-28 h-28 rounded-[24px] overflow-hidden">
+                  <View className="w-28 h-28 rounded-[24px] overflow-hidden bg-gray-100">
                     <Image 
-                      source={{ uri: item.image }} 
+                      source={{ uri: item.coverImage || 'https://images.unsplash.com/photo-1552332386-f8dd00dc2f85?auto=format&fit=crop&w=300&q=80' }} 
                       style={{ width: '100%', height: '100%' }}
                       contentFit="cover"
                       transition={500}
@@ -117,34 +107,31 @@ export default function SearchScreen() {
                           {item.name}
                         </Text>
                         <View className="flex-row items-center">
-                          <Image 
-                            source={require('../../assets/images/Star.svg')}
-                            style={{ width: 14, height: 14 }}
-                            contentFit="contain"
-                          />
-                          <Text className="text-[10px] font-bold ml-1 text-[#7A3907]">{item.rating}</Text>
+                          <Ionicons name="star" size={14} color="#FF8A00" />
+                          <Text className="text-[10px] font-bold ml-1 text-[#7A3907]">{item.rating}/5</Text>
                         </View>
                       </View>
                       
                       <View className="flex-row items-center mt-1">
                         <Ionicons name="restaurant-outline" size={14} color="#8E9BAE" />
-                        <Text className="text-[#8E9BAE] text-[10px] ml-1">{item.tags}</Text>
+                        <Text className="text-[#8E9BAE] text-[10px] ml-1" numberOfLines={1}>{item.tags || 'Restaurant'}</Text>
                       </View>
                       
-                      <Text className="text-[#8E9BAE] text-[10px] mt-1">{item.hours}</Text>
+                      <Text className="text-[#8E9BAE] text-[10px] mt-1" numberOfLines={1}>{item.displayHours || 'Opening hours not available'}</Text>
                     </View>
 
-                    <TouchableOpacity>
+                    <TouchableOpacity onPress={() => router.push(`/booking/${item.id}`)}>
                       <Text className="text-[#FF8A00] text-sm font-bold">Book Reservation</Text>
                     </TouchableOpacity>
                   </View>
                 </TouchableOpacity>
               ))
-            ) : (
+            ) : !loading && query.length >= 2 ? (
               <View className="items-center mt-10">
-                <Text className="text-gray-400">No restaurants found for "{query}"</Text>
+                <Ionicons name="search-outline" size={48} color="#F1F5F9" />
+                <Text className="text-gray-400 mt-4">No restaurants found for "{query}"</Text>
               </View>
-            )}
+            ) : null}
           </View>
         ) : (
           <View className="items-center mt-20 px-10">

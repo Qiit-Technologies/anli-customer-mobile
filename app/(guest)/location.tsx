@@ -122,11 +122,11 @@ export default function GuestLocationScreen() {
             Enter your Location
           </Text>
           <Text className="text-[#8E9BAE] text-base leading-6">
-            To Get started, Sign in into your account
+            Help us find restaurants near you
           </Text>
         </View>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="close-circle-outline" size={32} color="#1A202C" />
+        <TouchableOpacity onPress={() => router.replace("/(tabs)")}>
+          <Text className="text-[#007AFF] text-lg font-bold">Skip</Text>
         </TouchableOpacity>
       </View>
 
@@ -229,6 +229,18 @@ export default function GuestLocationScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+        )}
+
+        {/* Continue without selection */}
+        {!selectedLocation && (
+          <TouchableOpacity
+            onPress={() => router.replace("/(tabs)")}
+            className="w-full bg-[#007AFF] py-5 rounded-2xl items-center shadow-sm mb-6"
+          >
+            <Text className="text-white text-lg font-bold">
+              Continue
+            </Text>
+          </TouchableOpacity>
         )}
       </View>
     </SafeAreaView>
