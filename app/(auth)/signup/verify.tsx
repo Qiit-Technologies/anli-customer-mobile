@@ -1,112 +1,86 @@
 import React, { useState, useRef } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function VerifyScreen() {
   const [code, setCode] = useState(['', '', '', '']);
-  const inputs = useRef<Array<TextInput | null>>([]);
+  const inputs = useRef<TextInput[]>([]);
 
-  const handleCodeChange = (text: string, index: number) => {
+  const handleTextChange = (text: string, index: number) => {
     const newCode = [...code];
     newCode[index] = text;
     setCode(newCode);
 
-    // Auto-advance to next input
     if (text && index < 3) {
-      inputs.current[index + 1]?.focus();
+      inputs.current[index + 1].focus();
     }
   };
 
   const handleKeyPress = (e: any, index: number) => {
-    // Go back on backspace if empty
     if (e.nativeEvent.key === 'Backspace' && !code[index] && index > 0) {
-      inputs.current[index - 1]?.focus();
+      inputs.current[index - 1].focus();
     }
   };
 
   return (
     <SafeAreaView className="flex-1 bg-white">
       <StatusBar style="dark" />
+      
+      {/* Header */}
+      <View className="px-6 py-4 flex-row items-center">
+        <TouchableOpacity onPress={() => router.back()} className="flex-row items-center">
+          <Ionicons name="chevron-back" size={24} color="#4A5568" />
+          <Text className="text-[#4A5568] text-lg ml-1">Back</Text>
+        </TouchableOpacity>
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1"
+        className="flex-1 px-6 pt-10"
       >
-        <View className="flex-1 px-6 pt-4 pb-10">
-          {/* Back Button */}
+        <View className="items-center mb-12">
+          <Text className="text-4xl font-bold text-[#3D2117] mb-4">Verify Code</Text>
+          <Text className="text-[#8E9BAE] text-center text-base leading-6">
+            Please enter the code we just sent to{'\n'}
+            <Text className="text-[#FF8A00]">example22@gmail.com</Text>
+          </Text>
+        </View>
+
+        {/* Code Inputs */}
+        <View className="flex-row justify-center mb-10" style={{ gap: 16 }}>
+          {[0, 1, 2, 3].map((index) => (
+            <TextInput
+              key={index}
+              ref={(ref) => {
+                inputs.current[index] = ref as TextInput;
+              }}
+              value={code[index]}
+              onChangeText={(text) => handleTextChange(text, index)}
+              onKeyPress={(e) => handleKeyPress(e, index)}
+              keyboardType="number-pad"
+              maxLength={1}
+              className="w-16 h-20 border border-[#E2E8F0] rounded-xl text-center text-2xl font-bold text-[#1A202C]"
+            />
+          ))}
+        </View>
+
+        <View className="items-center">
+          <Text className="text-[#8E9BAE] text-sm">
+            Didn't receive the email?{' '}
+            <Text className="text-[#007AFF] font-bold">Click to Verification Code</Text>
+          </Text>
+        </View>
+
+        <View className="flex-1 justify-end pb-10">
           <TouchableOpacity
-            onPress={() => router.back()}
-            className="flex-row items-center mb-10"
+            onPress={() => router.push('/signup/success')}
+            className="w-full bg-[#007AFF] py-5 rounded-2xl items-center shadow-sm"
           >
-            <Ionicons name="chevron-back" size={24} color="#1f2937" />
-            <Text className="text-base text-[#1f2937] ml-1">Back</Text>
+            <Text className="text-white text-lg font-bold">Verify</Text>
           </TouchableOpacity>
-
-          {/* Header */}
-          <View className="items-center mb-10">
-            <Text className="text-4xl font-bold text-[#45220a] mb-3">Verify Code</Text>
-            <Text className="text-base text-[#6b7b99] text-center mb-1">
-              Please enter the code we just sent to
-            </Text>
-            <Text className="text-base text-[#FF8A00] font-medium text-center">
-              example22@gmail.com
-            </Text>
-          </View>
-
-          {/* OTP Inputs */}
-          <View className="flex-row justify-center space-x-4 mb-8">
-            {code.map((digit, index) => (
-              <View key={index} className="w-16 h-16 mr-3">
-                <TextInput
-                  ref={(ref) => {
-                    inputs.current[index] = ref;
-                  }}
-                  value={digit}
-                  onChangeText={(text) => handleCodeChange(text, index)}
-                  onKeyPress={(e) => handleKeyPress(e, index)}
-                  keyboardType="number-pad"
-                  maxLength={1}
-                  className="w-full h-full border border-gray-200 rounded-xl text-center text-2xl font-bold text-black bg-white shadow-sm"
-                  style={{
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 2,
-                    elevation: 1,
-                  }}
-                />
-              </View>
-            ))}
-          </View>
-
-          {/* Resend Link */}
-          <View className="flex-row justify-center items-center">
-            <Text className="text-[#6b7b99] text-sm">Didn't receive the email? </Text>
-            <TouchableOpacity>
-              <Text className="text-[#007AFF] text-sm font-semibold">
-                Click to Verification Code
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Verify Button */}
-          <View className="mt-auto">
-            <TouchableOpacity
-              onPress={() => router.push('/(auth)/signup/success')}
-              className="w-full bg-[#007AFF] py-4 rounded-xl items-center"
-            >
-              <Text className="text-white text-lg font-semibold">Verify</Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

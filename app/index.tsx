@@ -1,35 +1,39 @@
-import { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Dimensions, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { useState, useRef } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  FlatList,
+  Dimensions,
+  Image,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { router } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 const ONBOARDING_DATA = [
   {
-    id: '1',
-    title: 'Discover Restaurant',
+    id: "1",
+    title: "Discover Restaurant",
     description:
-      'Explore top-rated restaurants near you, browse menus, view real photos, and find the perfect spot for any occasion',
-    image:
-      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=1000',
+      "Explore top-rated restaurants near you, browse menus, view real photos, and find the perfect spot for any occasion",
+    image: require("../assets/images/onboarding-image.png"),
   },
   {
-    id: '2',
-    title: 'Reserve instantly',
+    id: "2",
+    title: "Reserve instantly",
     description:
-      'Book a table in seconds with real time availability, no calls, no waiting, no uncertainty.',
-    image:
-      'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1000',
+      "Book a table in seconds with real time availability, no calls, no waiting, no uncertainty.",
+    image: require("../assets/images/onboarding-image.png"),
   },
   {
-    id: '3',
-    title: 'Pay securely',
+    id: "3",
+    title: "Pay securely",
     description:
-      'Make secure deposits or full payments with trusted, encrypted checkout and instant confirmation.',
-    image:
-      'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&q=80&w=1000',
+      "Make secure deposits or full payments with trusted, encrypted checkout and instant confirmation.",
+    image: require("../assets/images/onboarding-image.png"),
   },
 ];
 
@@ -44,13 +48,13 @@ export default function OnboardingScreen() {
         animated: true,
       });
     } else {
-      // Navigate to tabs
-      router.replace('/(tabs)');
+      // Navigate to Sign Up
+      router.push('/signup');
     }
   };
 
   const handleSkip = () => {
-    router.replace('/(tabs)');
+    router.push("/(guest)");
   };
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
@@ -62,11 +66,13 @@ export default function OnboardingScreen() {
   return (
     <SafeAreaView className="flex-1 bg-white">
       <StatusBar style="dark" />
-      
+
       {/* Top Header */}
       <View className="w-full flex-row justify-end px-6 pt-4 pb-2">
         <TouchableOpacity onPress={handleSkip}>
-          <Text className="text-[#007AFF] text-base font-semibold">Continue as Guest</Text>
+          <Text className="text-[#007AFF] text-base font-semibold">
+            Continue as Guest
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -74,7 +80,7 @@ export default function OnboardingScreen() {
       <View className="absolute top-[20%] -left-8 w-16 h-32 bg-[#0A1930] rounded-r-full" />
       <View className="absolute top-[22%] left-6 w-4 h-4 bg-[#F9D5B4] rounded-full" />
       <View className="absolute top-[48%] left-4 w-4 h-4 bg-[#F9D5B4] rounded-full" />
-      
+
       <View className="absolute top-[45%] -right-8 w-16 h-32 bg-[#0A1930] rounded-l-full" />
       <View className="absolute top-[49%] right-6 w-4 h-4 bg-[#F9D5B4] rounded-full" />
 
@@ -97,7 +103,7 @@ export default function OnboardingScreen() {
                 <View className="absolute w-[320px] h-[320px] rounded-full border-[4px] border-[#F9D5B4] top-2 left-2" />
                 {/* Image */}
                 <Image
-                  source={{ uri: item.image }}
+                  source={item.image}
                   className="w-full h-full rounded-full"
                   resizeMode="cover"
                 />
@@ -124,14 +130,20 @@ export default function OnboardingScreen() {
           className="w-full bg-[#007AFF] py-4 rounded-xl items-center mb-6"
         >
           <Text className="text-white text-lg font-semibold">
-            Get Started
+            {currentIndex === ONBOARDING_DATA.length - 1
+              ? "Get Started"
+              : "Continue"}
           </Text>
         </TouchableOpacity>
 
         <View className="flex-row justify-center items-center">
-          <Text className="text-gray-600 text-base">Already have an account? </Text>
-          <TouchableOpacity onPress={() => console.log('Navigate to Login')}>
-            <Text className="text-[#FF8A00] text-base font-semibold">Login</Text>
+          <Text className="text-gray-600 text-base">
+            Already have an account?{" "}
+          </Text>
+          <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
+            <Text className="text-[#FF8A00] text-base font-semibold">
+              Login
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
