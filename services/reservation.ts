@@ -12,7 +12,7 @@ export interface CreateReservationData {
   guestNumber: number;
   spaceType?: string;
   specialRequest?: string;
-  customerId?: number;
+  customerId?: string;
 }
 
 export const reservationService = {
@@ -43,9 +43,33 @@ export const reservationService = {
   /**
    * Fetches all reservations for a customer by their ID
    */
-  getByCustomerId: async (customerId: number): Promise<any[]> => {
+  getByCustomerId: async (customerId: string): Promise<any[]> => {
     try {
       const response = await api.get(`/table-reservations/public/customer/${customerId}`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  /**
+   * Updates an existing reservation (requires customer auth)
+   */
+  update: async (reservationId: number, data: Partial<CreateReservationData>) => {
+    try {
+      const response = await api.patch(`/table-reservations/public/${reservationId}`, data);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  /**
+   * Fetches specific reservation details by ID
+   */
+  getById: async (reservationId: number) => {
+    try {
+      const response = await api.get(`/table-reservations/public/details/${reservationId}`);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error.message;

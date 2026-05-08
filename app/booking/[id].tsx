@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   Modal,
   Dimensions,
   TextInput,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -17,7 +16,9 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { reservationService } from '../../services/reservation';
+import { hotelService, Hotel } from '../../services/hotel';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 
 const { height } = Dimensions.get('window');
 
@@ -37,11 +38,14 @@ function getFirstDayOfMonth(month: number, year: number) {
 
 export default function BookingReservationScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams();
+  const { id, reservationId, mode } = useLocalSearchParams();
+  const isEdit = mode === 'edit';
   const { user } = useAuth();
+  const { showToast } = useToast();
   const hotelId = Number(id);
 
   const now = new Date();
+  const [hotel, setHotel] = useState<Hotel | null>(null);
   const [selectedDay, setSelectedDay] = useState(now.getDate());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth()); // 0-indexed
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
@@ -52,6 +56,7 @@ export default function BookingReservationScreen() {
   const [specialRequest, setSpecialRequest] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [loadingDetails, setLoadingDetails] = useState(true);
 
   // Contact Info
   const [firstName, setFirstName] = useState('');
@@ -59,11 +64,65 @@ export default function BookingReservationScreen() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
 
-  const [activeModal, setActiveModal] = useState<null | 'date' | 'time' | 'guests' | 'seating' | 'contact' | 'specialRequest' | 'payment'>(null);
+  const [activeModal, setActiveModal] = useState<null | 'date' | 'time' | 'guests' | 'seating' | 'contact' | 'specialRequest'>(null);
+
+  useEffect(() => {
+    const initialize = async () => {
+      setLoadingDetails(true);
+      await fetchHotelDetails();
+      
+      if (isEdit && reservationId) {
+        await fetchReservationForEdit(Number(reservationId));
+      } else if (user) {
+        setFirstName(user.firstName || '');
+        setLastName(user.lastName || '');
+        setEmail(user.email || '');
+        setPhone(user.phoneNumber || '');
+      }
+      setLoadingDetails(false);
+    };
+    
+    initialize();
+  }, [user, hotelId, reservationId, mode]);
+
+  const fetchHotelDetails = async () => {
+    try {
+      const data = await hotelService.getDetails(hotelId);
+      setHotel(data);
+    } catch (error) {
+      console.error('Error fetching hotel details:', error);
+    }
+  };
+
+  const fetchReservationForEdit = async (resId: number) => {
+    try {
+      const data = await reservationService.getById(resId);
+      if (data) {
+        setFirstName(data.firstName);
+        setLastName(data.lastName);
+        setEmail(data.email);
+        setPhone(data.phone);
+        
+        const resDate = new Date(data.date);
+        setSelectedDay(resDate.getDate());
+        setSelectedMonth(resDate.getMonth());
+        setSelectedYear(resDate.getFullYear());
+        
+        setTime(data.time);
+        setGuests(data.guestNumber.toString());
+        setSeating(data.tableType);
+        setOccasion(data.reservationType);
+        setSpecialRequest(data.note || '');
+        setAcceptedTerms(true);
+      }
+    } catch (error) {
+      console.error('Error fetching reservation for edit:', error);
+      showToast({ message: "Failed to load reservation details", type: 'error' });
+    }
+  };
 
   const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
   const firstDay = getFirstDayOfMonth(selectedMonth, selectedYear); // 0=Sun
-  // Shift so Monday is first (0=Mon)
   const paddingDays = (firstDay + 6) % 7;
   const calendarDays = [...Array(paddingDays).fill(null), ...[...Array(daysInMonth).keys()].map(i => i + 1)];
 
@@ -80,34 +139,46 @@ export default function BookingReservationScreen() {
 
   const handleSubmitReservation = async () => {
     if (!acceptedTerms) {
-      Alert.alert('Terms Required', 'Please accept the terms and conditions to proceed.');
+      showToast({ message: 'Please accept the terms and conditions', type: 'error' });
       return;
     }
     if (!firstName || !lastName || !email || !phone) {
-      Alert.alert('Missing Info', 'Please fill in your contact details.');
+      showToast({ message: 'Please fill in your contact details', type: 'error' });
       setActiveModal('contact');
+      return;
+    }
+    if (!time || !guests || !seating) {
+      showToast({ message: 'Please complete all selection fields', type: 'error' });
       return;
     }
 
     setSubmitting(true);
     try {
-      await reservationService.create(hotelId, {
+      const reservationData = {
         firstName,
         lastName,
         email,
         phone,
         date: formattedDate,
-        time: time || TIME_OPTIONS[0],
-        tableType: seating || 'Indoor',
+        time,
+        tableType: seating,
         reservationType: occasion || 'Casual Dining',
         guestNumber: parseInt(guests) || 2,
         specialRequest,
         customerId: user?.id,
-      });
-      setActiveModal(null);
-      router.push('/booking/success');
+      };
+
+      if (isEdit && reservationId) {
+        await reservationService.update(Number(reservationId), reservationData);
+        showToast({ message: 'Reservation updated successfully!', type: 'success' });
+        router.replace('/(tabs)/bookings');
+      } else {
+        await reservationService.create(hotelId, reservationData);
+        setActiveModal(null);
+        router.replace('/booking/success');
+      }
     } catch (error: any) {
-      Alert.alert('Booking Failed', error?.message || 'Something went wrong. Please try again.');
+      showToast({ message: error?.message || 'Action failed. Please try again.', type: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -120,13 +191,12 @@ export default function BookingReservationScreen() {
     if (activeModal === 'seating') return 'Seating Preference';
     if (activeModal === 'contact') return 'Your Details';
     if (activeModal === 'specialRequest') return 'Special Request';
-    if (activeModal === 'payment') return 'Payment Details';
     return '';
   };
 
   const getApplyLabel = () => {
     if (activeModal === 'contact') return 'Save Details';
-    if (activeModal === 'specialRequest') return submitting ? 'Booking...' : 'Confirm Booking';
+    if (activeModal === 'specialRequest') return submitting ? 'Saving...' : (isEdit ? 'Update Reservation' : 'Confirm Booking');
     return 'Apply';
   };
 
@@ -159,7 +229,8 @@ export default function BookingReservationScreen() {
             </View>
             <View className="flex-row flex-wrap">
               {calendarDays.map((day, i) => {
-                const isPast = day !== null && new Date(selectedYear, selectedMonth, day) < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const dayDate = day ? new Date(selectedYear, selectedMonth, day) : null;
+                const isPast = !!(dayDate && dayDate < new Date(now.getFullYear(), now.getMonth(), now.getDate()));
                 return (
                   <TouchableOpacity
                     key={i}
@@ -239,8 +310,7 @@ export default function BookingReservationScreen() {
               <TextInput
                 value={firstName}
                 onChangeText={setFirstName}
-                placeholder="e.g. Jane"
-                placeholderTextColor="#A0AEC0"
+                placeholder="John"
                 className="border border-[#F1F5F9] p-4 rounded-2xl text-gray-800 text-sm bg-[#F8FAFC]"
               />
             </View>
@@ -249,8 +319,7 @@ export default function BookingReservationScreen() {
               <TextInput
                 value={lastName}
                 onChangeText={setLastName}
-                placeholder="e.g. Doe"
-                placeholderTextColor="#A0AEC0"
+                placeholder="Doe"
                 className="border border-[#F1F5F9] p-4 rounded-2xl text-gray-800 text-sm bg-[#F8FAFC]"
               />
             </View>
@@ -260,7 +329,6 @@ export default function BookingReservationScreen() {
                 value={email}
                 onChangeText={setEmail}
                 placeholder="jane@example.com"
-                placeholderTextColor="#A0AEC0"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 className="border border-[#F1F5F9] p-4 rounded-2xl text-gray-800 text-sm bg-[#F8FAFC]"
@@ -271,8 +339,7 @@ export default function BookingReservationScreen() {
               <TextInput
                 value={phone}
                 onChangeText={setPhone}
-                placeholder="+234 000 000 0000"
-                placeholderTextColor="#A0AEC0"
+                placeholder="+234..."
                 keyboardType="phone-pad"
                 className="border border-[#F1F5F9] p-4 rounded-2xl text-gray-800 text-sm bg-[#F8FAFC]"
               />
@@ -328,6 +395,15 @@ export default function BookingReservationScreen() {
 
   const contactComplete = firstName && lastName && email && phone;
 
+  if (loadingDetails) {
+    return (
+      <View className="flex-1 bg-white items-center justify-center">
+        <ActivityIndicator size="large" color="#FF8A00" />
+        <Text className="text-[#8E9BAE] mt-4 font-medium">{isEdit ? 'Loading reservation...' : 'Loading restaurant...'}</Text>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       <StatusBar style="dark" />
@@ -337,30 +413,36 @@ export default function BookingReservationScreen() {
         <TouchableOpacity onPress={() => router.back()} className="flex-row items-center mb-6">
           <Ionicons name="chevron-back" size={24} color="#1A202C" />
         </TouchableOpacity>
-        <Text className="text-2xl font-bold text-[#3D2117] mb-1">Booking Reservation</Text>
-        <Text className="text-[#8E9BAE] text-sm mb-6">Fill in details below to reserve your table</Text>
+        <Text className="text-2xl font-bold text-[#3D2117] mb-1">
+          {isEdit ? 'Modify Reservation' : (hotel?.name || 'Booking Reservation')}
+        </Text>
+        <Text className="text-[#8E9BAE] text-sm mb-6">
+          {isEdit ? `Updating your booking at ${hotel?.name}` : 'Fill in details below to reserve your table'}
+        </Text>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1 px-6">
 
-        {/* Contact Info Banner */}
-        <TouchableOpacity
-          onPress={() => setActiveModal('contact')}
-          className={`flex-row items-center p-4 rounded-2xl mb-6 border ${contactComplete ? 'border-green-200 bg-green-50' : 'border-[#FFF5E9] bg-[#FFFBFA]'}`}
-        >
-          <View className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${contactComplete ? 'bg-green-100' : 'bg-[#FFF0E0]'}`}>
-            <Ionicons name={contactComplete ? 'checkmark-circle' : 'person-outline'} size={20} color={contactComplete ? '#22c55e' : '#FF8A00'} />
-          </View>
-          <View className="flex-1">
-            <Text className={`font-bold text-sm ${contactComplete ? 'text-green-700' : 'text-[#3D2117]'}`}>
-              {contactComplete ? `${firstName} ${lastName}` : 'Add Your Contact Details'}
-            </Text>
-            <Text className={`text-xs mt-0.5 ${contactComplete ? 'text-green-500' : 'text-[#8E9BAE]'}`}>
-              {contactComplete ? email : 'Required for reservation confirmation'}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color="#8E9BAE" />
-        </TouchableOpacity>
+        {/* Contact Info Banner - Only show if NOT logged in or if editing */}
+        {(!user || isEdit) && (
+          <TouchableOpacity
+            onPress={() => setActiveModal('contact')}
+            className={`flex-row items-center p-4 rounded-2xl mb-6 border ${contactComplete ? 'border-green-200 bg-green-50' : 'border-[#FFF5E9] bg-[#FFFBFA]'}`}
+          >
+            <View className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${contactComplete ? 'bg-green-100' : 'bg-[#FFF0E0]'}`}>
+              <Ionicons name={contactComplete ? 'checkmark-circle' : 'person-outline'} size={20} color={contactComplete ? '#22c55e' : '#FF8A00'} />
+            </View>
+            <View className="flex-1">
+              <Text className={`font-bold text-sm ${contactComplete ? 'text-green-700' : 'text-[#3D2117]'}`}>
+                {contactComplete ? `${firstName} ${lastName}` : 'Add Your Contact Details'}
+              </Text>
+              <Text className={`text-xs mt-0.5 ${contactComplete ? 'text-green-500' : 'text-[#8E9BAE]'}`}>
+                {contactComplete ? email : 'Required for reservation confirmation'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#8E9BAE" />
+          </TouchableOpacity>
+        )}
 
         {/* Date */}
         <View className="mb-5">
@@ -420,10 +502,29 @@ export default function BookingReservationScreen() {
       {/* Bottom Action */}
       <View className="px-6 py-6 border-t border-[#F1F5F9]">
         <TouchableOpacity
-          onPress={() => setActiveModal('specialRequest')}
-          className="bg-[#3D2117] w-full py-5 rounded-2xl items-center shadow-sm"
+          onPress={() => {
+            if (!time) {
+              showToast({ message: "Please select a reservation time", type: 'error' });
+              setActiveModal('time');
+              return;
+            }
+            if (!guests) {
+              showToast({ message: "Please select number of guests", type: 'error' });
+              setActiveModal('guests');
+              return;
+            }
+            if (!seating) {
+              showToast({ message: "Please select seating preference", type: 'error' });
+              setActiveModal('seating');
+              return;
+            }
+            setActiveModal('specialRequest');
+          }}
+          className="bg-[#007AFF] w-full py-5 rounded-2xl items-center shadow-sm"
         >
-          <Text className="text-white text-lg font-bold">Continue to Confirm</Text>
+          <Text className="text-white text-lg font-bold">
+            {isEdit ? 'Continue to Update' : 'Continue to Confirm'}
+          </Text>
         </TouchableOpacity>
       </View>
 

@@ -39,9 +39,13 @@ export const hotelService = {
   /**
    * Searches restaurants by name, tags, or address
    */
-  search: async (query: string): Promise<Hotel[]> => {
+  search: async (query: string, filters?: { rating?: number; tags?: string }): Promise<Hotel[]> => {
     try {
-      const response = await api.get(`/hotels/mobile/search?q=${encodeURIComponent(query)}`);
+      let url = `/hotels/mobile/search?q=${encodeURIComponent(query)}`;
+      if (filters?.rating) url += `&rating=${filters.rating}`;
+      if (filters?.tags) url += `&tags=${encodeURIComponent(filters.tags)}`;
+      
+      const response = await api.get(url);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error.message;

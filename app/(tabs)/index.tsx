@@ -14,6 +14,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { hotelService, Hotel } from "../../services/hotel";
+import { authService } from "../../services/auth";
+import { useAuth } from "../../context/AuthContext";
 
 const CATEGORIES = [
   {
@@ -50,16 +52,22 @@ const CATEGORIES = [
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [restaurants, setRestaurants] = useState<Hotel[]>([]);
+  const [favorites, setFavorites] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchFeatured = async () => {
+  const fetchData = async () => {
     try {
-      const data = await hotelService.getFeatured();
-      setRestaurants(data);
+      const [featuredData, favoritesData] = await Promise.all([
+        hotelService.getFeatured(),
+        user ? authService.getFavorites() : Promise.resolve([]),
+      ]);
+      setRestaurants(featuredData);
+      setFavorites(favoritesData.map((f: any) => f.id));
     } catch (error) {
-      console.error("Error fetching featured restaurants:", error);
+      console.error("Error fetching home data:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -67,12 +75,30 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-    fetchFeatured();
-  }, []);
+    fetchData();
+  }, [user]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchFeatured();
+    fetchData();
+  };
+
+  const handleToggleFavorite = async (hotelId: number) => {
+    if (!user) {
+      router.push("/(auth)/login");
+      return;
+    }
+
+    try {
+      await authService.toggleFavorite(hotelId);
+      setFavorites(prev => 
+        prev.includes(hotelId) 
+          ? prev.filter(id => id !== hotelId) 
+          : [...prev, hotelId]
+      );
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+    }
   };
 
   return (
@@ -110,7 +136,7 @@ export default function HomeScreen() {
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF8A00" />
         }
       >
         {/* Promo Banner */}
@@ -126,14 +152,15 @@ export default function HomeScreen() {
 
         {/* Search Bar */}
         <View className="px-6 mb-6">
-          <View className="flex-row items-center border border-[#F1F5F9] py-2.5 px-5 rounded-2xl bg-[#F8FAFC]">
+          <TouchableOpacity 
+            onPress={() => router.push("/(tabs)/search")}
+            className="flex-row items-center border border-[#F1F5F9] py-3.5 px-5 rounded-2xl bg-[#F8FAFC]"
+          >
             <Ionicons name="search-outline" size={20} color="#8E9BAE" />
-            <TextInput
-              placeholder="Search restaurant name etc"
-              placeholderTextColor="#A0AEC0"
-              className="flex-1 ml-3 text-sm text-gray-800"
-            />
-          </View>
+            <Text className="flex-1 ml-3 text-sm text-[#A0AEC0]">
+              Search restaurant name etc
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Categories Section */}
@@ -169,92 +196,102 @@ export default function HomeScreen() {
           </View>
 
           {loading ? (
-            <ActivityIndicator size="large" color="#007AFF" className="mt-10" />
+            <ActivityIndicator size="large" color="#FF8A00" className="mt-10" />
           ) : restaurants.length === 0 ? (
             <View className="items-center mt-10">
               <Text className="text-[#8E9BAE]">No restaurants found</Text>
             </View>
           ) : (
-            restaurants.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                onPress={() => router.push(`/restaurant/${item.id}`)}
-                className="bg-white rounded-[32px] overflow-hidden border border-[#FFF5E9] shadow-sm mb-8"
-              >
-                <View className="h-40 relative">
-                  <Image
-                    source={{
-                      uri:
-                        item.coverImage ||
-                        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=500&q=80",
-                    }}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      borderTopLeftRadius: 32,
-                      borderTopRightRadius: 32,
-                    }}
-                    contentFit="cover"
-                    transition={500}
-                  />
-                  <TouchableOpacity className="absolute top-4 right-4 w-9 h-9 items-center justify-center">
-                    <Image
-                      source={require("../../assets/images/Heart.svg")}
-                      style={{ width: 20, height: 20 }}
-                      contentFit="contain"
-                      tintColor="white"
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                <View className="pt-5 px-4 pb-2 bg-[#FFFBFA]">
-                  <View className="flex-row justify-between items-center mb-3">
-                    <Text className="text-xl font-bold text-[#3D2117]">
-                      {item.name}
-                    </Text>
-                    <View className="flex-row items-center">
-                      <Image
-                        source={require("../../assets/images/Star.svg")}
-                        style={{ width: 18, height: 18 }}
-                        contentFit="contain"
-                      />
-                      <Text className="text-sm font-bold ml-1 text-[#7A3907]">
-                        {item.rating || "4.0"}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View className="flex-row justify-between items-center mb-4">
-                    <View className="flex-row items-center flex-1">
-                      <Ionicons
-                        name="restaurant-outline"
-                        size={14}
-                        color="#8E9BAE"
-                      />
-                      <Text
-                        className="text-[#8E9BAE] text-[10px] ml-1"
-                        numberOfLines={1}
-                      >
-                        {item.tags || "General Restaurant"}
-                      </Text>
-                    </View>
-                    <Text className="text-[#8E9BAE] text-[10px] ml-2">
-                      {item.displayHours || "Open now 09:00 am - 10:00 pm"}
-                    </Text>
-                  </View>
-                </View>
-
-                <View className="border-t border-[#F1F5F9] px-6 py-5 bg-white">
+            restaurants.map((item) => {
+              const isFavorite = favorites.includes(item.id);
+              return (
+                <View
+                  key={item.id}
+                  className="bg-white rounded-[32px] overflow-hidden border border-[#FFF5E9] shadow-sm mb-8"
+                >
                   <TouchableOpacity
-                    onPress={() => router.push(`/booking/${item.id}`)}
+                    onPress={() => router.push(`/restaurant/${item.id}`)}
+                    activeOpacity={0.9}
                   >
-                    <Text className="text-[#FF8A00] text-base font-bold">
-                      Book Reservation
-                    </Text>
+                    <View className="h-40 relative">
+                      <Image
+                        source={{
+                          uri:
+                            item.coverImage ||
+                            "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=500&q=80",
+                        }}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          borderTopLeftRadius: 32,
+                          borderTopRightRadius: 32,
+                        }}
+                        contentFit="cover"
+                        transition={500}
+                      />
+                      <TouchableOpacity 
+                        onPress={() => handleToggleFavorite(item.id)}
+                        className="absolute top-4 right-4 w-9 h-9 items-center justify-center"
+                      >
+                        <Image
+                          source={require("../../assets/images/Heart.svg")}
+                          style={{ width: 20, height: 20 }}
+                          contentFit="contain"
+                          tintColor={isFavorite ? "#FF3B30" : "white"}
+                        />
+                      </TouchableOpacity>
+                    </View>
+
+                    <View className="pt-5 px-4 pb-2 bg-[#FFFBFA]">
+                      <View className="flex-row justify-between items-center mb-3">
+                        <Text className="text-xl font-bold text-[#3D2117]">
+                          {item.name}
+                        </Text>
+                        <View className="flex-row items-center bg-orange-50 px-2 py-1 rounded-lg">
+                          <Image
+                            source={require("../../assets/images/Star.svg")}
+                            style={{ width: 18, height: 18 }}
+                            contentFit="contain"
+                          />
+                          <Text className="text-sm font-bold ml-1 text-[#6B4226]">
+                            {item.rating || "4.5"}/5
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View className="flex-row justify-between items-center mb-4">
+                        <View className="flex-row items-center flex-1">
+                          <Ionicons
+                            name="restaurant-outline"
+                            size={14}
+                            color="#8E9BAE"
+                          />
+                          <Text
+                            className="text-[#8E9BAE] text-[10px] ml-1"
+                            numberOfLines={1}
+                          >
+                            {item.tags || "General Restaurant"}
+                          </Text>
+                        </View>
+                        <Text className="text-[#8E9BAE] text-[10px] ml-2 font-medium">
+                          {item.displayHours || "09:00 AM - 10:00 PM"}
+                        </Text>
+                      </View>
+                    </View>
                   </TouchableOpacity>
+
+                  <View className="border-t border-[#F1F5F9] px-6 py-5 bg-white">
+                    <TouchableOpacity
+                      onPress={() => router.push(`/booking/${item.id}`)}
+                    >
+                      <Text className="text-[#FF8A00] text-base font-bold text-left">
+                        Book Reservation
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </TouchableOpacity>
-            ))
+              );
+            })
           )}
         </View>
       </ScrollView>

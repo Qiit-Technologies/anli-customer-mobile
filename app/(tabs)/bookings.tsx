@@ -29,16 +29,18 @@ function formatDate(dateStr: string) {
 
 export default function BookingsScreen() {
   const router = useRouter();
-  const { user, isLoggedIn } = useAuth();
+  const auth = useAuth();
+  
+  console.log('[DEBUG] Bookings Auth State:', { isLoggedIn: auth.isLoggedIn, isLoading: auth.isLoading, hasUser: !!auth.user });
   const [activeTab, setActiveTab] = useState("Upcoming");
   const [reservations, setReservations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchReservations = async () => {
-    if (!user?.id) { setLoading(false); return; }
+    if (!auth.user?.id) { setLoading(false); return; }
     try {
-      const data = await reservationService.getByCustomerId(user.id);
+      const data = await reservationService.getByCustomerId(auth.user.id);
       setReservations(data);
     } catch (e) {
       console.error("Failed to fetch reservations:", e);
@@ -48,7 +50,7 @@ export default function BookingsScreen() {
     }
   };
 
-  useEffect(() => { fetchReservations(); }, [user]);
+  useEffect(() => { fetchReservations(); }, [auth.user]);
 
   const onRefresh = () => { setRefreshing(true); fetchReservations(); };
 
@@ -135,7 +137,7 @@ export default function BookingsScreen() {
           </TouchableOpacity>
           {activeTab === "Upcoming" && (
             <TouchableOpacity
-              onPress={() => router.push(`/booking/${item.hotel?.id}`)}
+              onPress={() => router.push(`/booking/${item.hotel?.id}?mode=edit&reservationId=${item.id}`)}
               className="flex-1 bg-[#3D2117] py-3.5 rounded-xl ml-2"
             >
               <Text className="text-white text-[10px] font-bold text-center">Modify</Text>
@@ -152,7 +154,7 @@ export default function BookingsScreen() {
 
       <View className="px-6 pt-6 pb-2">
         <Text className="text-2xl font-bold text-[#3D2117] mb-1">My Bookings</Text>
-        {user && <Text className="text-[#8E9BAE] text-sm mb-4">{user.firstName} {user.lastName}</Text>}
+        {auth.user && <Text className="text-[#8E9BAE] text-sm mb-4">{auth.user.firstName} {auth.user.lastName}</Text>}
       </View>
 
       {/* Tabs */}
@@ -177,7 +179,9 @@ export default function BookingsScreen() {
         className="flex-1 px-6"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {!isLoggedIn ? (
+        {auth.isLoading ? (
+          <ActivityIndicator size="large" color="#FF8A00" className="mt-20" />
+        ) : !auth.isLoggedIn ? (
           <View className="items-center mt-20">
             <Ionicons name="lock-closed-outline" size={48} color="#CBD5E0" />
             <Text className="text-[#8E9BAE] text-base mt-4 text-center">

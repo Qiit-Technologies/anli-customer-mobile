@@ -6,10 +6,12 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { authService } from '../../../services/auth';
 import { useAuth } from '../../../context/AuthContext';
+import { useToast } from '../../../context/ToastContext';
 
 export default function VerifyScreen() {
   const router = useRouter();
   const { refreshAuth } = useAuth();
+  const { showToast } = useToast();
   const { email } = useLocalSearchParams<{ email: string }>();
   const [code, setCode] = useState(['', '', '', '']);
   const [loading, setLoading] = useState(false);
@@ -34,7 +36,7 @@ export default function VerifyScreen() {
   const handleVerify = async () => {
     const fullCode = code.join('');
     if (fullCode.length < 4) {
-      Alert.alert("Error", "Please enter the complete 4-digit code");
+      showToast({ message: "Please enter the complete 4-digit code", type: 'error' });
       return;
     }
 
@@ -45,7 +47,7 @@ export default function VerifyScreen() {
       // Navigate to success screen on successful verification
       router.push('/signup/success');
     } catch (error: any) {
-      Alert.alert("Verification Failed", error?.message || "Invalid code. Please try again.");
+      showToast({ message: error?.message || "Invalid code. Please try again.", type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -99,9 +101,9 @@ export default function VerifyScreen() {
             <TouchableOpacity onPress={async () => {
               try {
                 await authService.resendOtp(email || '');
-                Alert.alert("Success", "New verification code sent to your email");
+                showToast({ message: "New verification code sent to your email", type: 'success' });
               } catch (error: any) {
-                Alert.alert("Error", error?.message || "Failed to resend code");
+                showToast({ message: error?.message || "Failed to resend code", type: 'error' });
               }
             }}>
               <Text className="text-[#007AFF] font-bold">Resend Code</Text>

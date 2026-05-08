@@ -8,7 +8,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
   Modal,
   FlatList,
 } from "react-native";
@@ -17,7 +16,8 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { authService } from "../../../services/auth";
-import * as SecureStore from 'expo-secure-store';
+import { useToast } from "../../../context/ToastContext";
+import * as SecureStore from "expo-secure-store";
 
 const COUNTRY_CODES = [
   { code: "+234", name: "Nigeria", flag: "🇳🇬" },
@@ -31,6 +31,7 @@ const COUNTRY_CODES = [
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -73,7 +74,7 @@ export default function SignUpScreen() {
     setLoading(true);
     try {
       const fullPhone = `${countryCode.code}${phone.replace(/^0+/, "")}`;
-      
+
       await authService.register({
         firstName,
         lastName,
@@ -83,10 +84,13 @@ export default function SignUpScreen() {
       });
       router.push({
         pathname: "/signup/verify",
-        params: { email }
+        params: { email },
       });
     } catch (error: any) {
-      Alert.alert("Signup Failed", error?.message || "Something went wrong. Please try again.");
+      showToast({
+        message: error?.message || "Something went wrong. Please try again.",
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -116,41 +120,67 @@ export default function SignUpScreen() {
             {/* Name Fields */}
             <View className="flex-row space-x-4 mb-4">
               <View className="flex-1">
-                <Text className="text-[#8E9BAE] text-sm font-medium mb-2">First Name</Text>
-                <View className={`w-full border py-4 px-6 rounded-2xl ${errors.firstName ? 'border-red-500 bg-red-50/10' : 'border-[#E2E8F0]'}`}>
+                <Text className="text-[#8E9BAE] text-sm font-medium mb-2">
+                  First Name
+                </Text>
+                <View
+                  className={`w-full h-[50px] border px-6 rounded-2xl flex-row items-center ${errors.firstName ? "border-red-500 bg-red-50/10" : "border-[#E2E8F0] bg-[#F8FAFC]"}`}
+                >
                   <TextInput
                     value={firstName}
                     onChangeText={(text) => {
                       setFirstName(text);
-                      if (errors.firstName) setErrors({ ...errors, firstName: null });
+                      if (errors.firstName)
+                        setErrors({ ...errors, firstName: null });
                     }}
                     placeholder="John"
-                    className="text-base text-gray-800 p-0"
+                    placeholderTextColor="#A0AEC0"
+                    className="flex-1 text-base text-[#1A202C] h-full"
+                    style={{ textAlignVertical: "center", paddingVertical: 0 }}
                   />
                 </View>
-                {errors.firstName && <Text className="text-red-500 text-[10px] mt-1 ml-1 font-medium">{errors.firstName}</Text>}
+                {errors.firstName && (
+                  <Text className="text-red-500 text-[10px] mt-1 ml-1 font-medium">
+                    {errors.firstName}
+                  </Text>
+                )}
               </View>
               <View className="flex-1 ml-4">
-                <Text className="text-[#8E9BAE] text-sm font-medium mb-2">Last Name</Text>
-                <View className={`w-full border py-4 px-6 rounded-2xl ${errors.lastName ? 'border-red-500 bg-red-50/10' : 'border-[#E2E8F0]'}`}>
+                <Text className="text-[#8E9BAE] text-sm font-medium mb-2">
+                  Last Name
+                </Text>
+                <View
+                  className={`w-full h-[50px] border px-6 rounded-2xl flex-row items-center ${errors.lastName ? "border-red-500 bg-red-50/10" : "border-[#E2E8F0] bg-[#F8FAFC]"}`}
+                >
                   <TextInput
                     value={lastName}
                     onChangeText={(text) => {
                       setLastName(text);
-                      if (errors.lastName) setErrors({ ...errors, lastName: null });
+                      if (errors.lastName)
+                        setErrors({ ...errors, lastName: null });
                     }}
                     placeholder="Doe"
-                    className="text-base text-gray-800 p-0"
+                    placeholderTextColor="#A0AEC0"
+                    className="flex-1 text-base text-[#1A202C] h-full"
+                    style={{ textAlignVertical: "center", paddingVertical: 0 }}
                   />
                 </View>
-                {errors.lastName && <Text className="text-red-500 text-[10px] mt-1 ml-1 font-medium">{errors.lastName}</Text>}
+                {errors.lastName && (
+                  <Text className="text-red-500 text-[10px] mt-1 ml-1 font-medium">
+                    {errors.lastName}
+                  </Text>
+                )}
               </View>
             </View>
 
             {/* Email Field */}
             <View className="mb-4">
-              <Text className="text-[#8E9BAE] text-sm font-medium mb-2">Email Address</Text>
-              <View className={`w-full border py-4 px-6 rounded-2xl ${errors.email ? 'border-red-500 bg-red-50/10' : 'border-[#E2E8F0]'}`}>
+              <Text className="text-[#8E9BAE] text-sm font-medium mb-2">
+                Email Address
+              </Text>
+              <View
+                className={`w-full h-[50px] border px-6 rounded-2xl flex-row items-center ${errors.email ? "border-red-500 bg-red-50/10" : "border-[#E2E8F0] bg-[#F8FAFC]"}`}
+              >
                 <TextInput
                   value={email}
                   onChangeText={(text) => {
@@ -158,26 +188,43 @@ export default function SignUpScreen() {
                     if (errors.email) setErrors({ ...errors, email: null });
                   }}
                   placeholder="Enter Email address"
+                  placeholderTextColor="#A0AEC0"
                   keyboardType="email-address"
                   autoCapitalize="none"
-                  className="text-base text-gray-800 p-0"
+                  className="flex-1 text-base text-[#1A202C] h-full"
+                  style={{ textAlignVertical: "center", paddingVertical: 0 }}
                 />
               </View>
-              {errors.email && <Text className="text-red-500 text-[10px] mt-1 ml-1 font-medium">{errors.email}</Text>}
+              {errors.email && (
+                <Text className="text-red-500 text-[10px] mt-1 ml-1 font-medium">
+                  {errors.email}
+                </Text>
+              )}
             </View>
 
             {/* Phone Number Field */}
             <View className="mb-4">
-              <Text className="text-[#1A202C] text-sm font-semibold mb-2">Phone Number</Text>
+              <Text className="text-[#1A202C] text-sm font-semibold mb-2">
+                Phone Number
+              </Text>
               <View className="flex-row items-center">
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => setIsModalVisible(true)}
-                  className={`flex-row items-center border py-4 px-3 rounded-2xl mr-3 ${errors.phone ? 'border-red-500 bg-red-50/10' : 'border-[#E2E8F0]'}`}
+                  className={`flex-row items-center border py-4 px-3 rounded-2xl mr-3 ${errors.phone ? "border-red-500 bg-red-50/10" : "border-[#E2E8F0]"}`}
                 >
-                  <Text className="text-[#1A202C] text-base">{countryCode.flag} {countryCode.code}</Text>
-                  <Ionicons name="chevron-down" size={16} color="#1A202C" style={{ marginLeft: 4 }} />
+                  <Text className="text-[#1A202C] text-base">
+                    {countryCode.flag} {countryCode.code}
+                  </Text>
+                  <Ionicons
+                    name="chevron-down"
+                    size={16}
+                    color="#1A202C"
+                    style={{ marginLeft: 4 }}
+                  />
                 </TouchableOpacity>
-                <View className={`flex-1 border py-4 px-6 rounded-2xl ${errors.phone ? 'border-red-500 bg-red-50/10' : 'border-[#E2E8F0]'}`}>
+                <View
+                  className={`flex-1 h-[50px] border px-6 rounded-2xl flex-row items-center ${errors.phone ? "border-red-500 bg-red-50/10" : "border-[#E2E8F0] bg-[#F8FAFC]"}`}
+                >
                   <TextInput
                     value={phone}
                     onChangeText={(text) => {
@@ -185,39 +232,65 @@ export default function SignUpScreen() {
                       if (errors.phone) setErrors({ ...errors, phone: null });
                     }}
                     placeholder="Enter Phone Number"
+                    placeholderTextColor="#A0AEC0"
                     keyboardType="phone-pad"
-                    className="text-base text-gray-800 p-0"
+                    className="flex-1 text-base text-[#1A202C] h-full"
+                    style={{ textAlignVertical: "center", paddingVertical: 0 }}
                   />
                 </View>
               </View>
-              {errors.phone && <Text className="text-red-500 text-[10px] mt-1 ml-1 font-medium">{errors.phone}</Text>}
+              {errors.phone && (
+                <Text className="text-red-500 text-[10px] mt-1 ml-1 font-medium">
+                  {errors.phone}
+                </Text>
+              )}
             </View>
 
             {/* Password Field */}
             <View className="mb-2">
-              <Text className="text-[#8E9BAE] text-sm font-medium mb-2">Password</Text>
-              <View className={`w-full border py-4 px-6 rounded-2xl flex-row items-center ${errors.password ? 'border-red-500 bg-red-50/10' : 'border-[#E2E8F0]'}`}>
+              <Text className="text-[#8E9BAE] text-sm font-medium mb-2">
+                Password
+              </Text>
+              <View
+                className={`w-full h-[50px] border px-6 rounded-2xl flex-row items-center ${errors.password ? "border-red-500 bg-red-50/10" : "border-[#E2E8F0] bg-[#F8FAFC]"}`}
+              >
                 <TextInput
                   value={password}
                   onChangeText={(text) => {
                     setPassword(text);
-                    if (errors.password) setErrors({ ...errors, password: null });
+                    if (errors.password)
+                      setErrors({ ...errors, password: null });
                   }}
                   placeholder="Enter Password"
+                  placeholderTextColor="#A0AEC0"
                   secureTextEntry={!showPassword}
-                  className="flex-1 text-base text-gray-800 p-0"
+                  className="flex-1 text-base text-[#1A202C]"
+                  style={{
+                    height: 50,
+                    textAlignVertical: "center",
+                    paddingVertical: 0,
+                    margin: 0,
+                  }}
                 />
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
                   className="ml-3"
                 >
-                  <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={22} color="#A0AEC0" />
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={22}
+                    color="#A0AEC0"
+                  />
                 </TouchableOpacity>
               </View>
               {errors.password ? (
-                <Text className="text-red-500 text-[10px] mt-1 ml-1 font-medium">{errors.password}</Text>
+                <Text className="text-red-500 text-[10px] mt-1 ml-1 font-medium">
+                  {errors.password}
+                </Text>
               ) : (
-                <Text className="text-[#8E9BAE] text-[10px] mt-1 ml-1">Must be at least 8 characters</Text>
+                <Text className="text-[#8E9BAE] text-[10px] mt-1 ml-1">
+                  Must be at least 8 characters
+                </Text>
               )}
             </View>
           </View>
@@ -225,9 +298,13 @@ export default function SignUpScreen() {
           <TouchableOpacity
             onPress={handleSignUp}
             disabled={loading}
-            className={`w-full py-5 rounded-2xl items-center mb-8 shadow-sm mt-6 ${loading ? 'bg-blue-300' : 'bg-[#007AFF]'}`}
+            className={`w-full py-5 rounded-2xl items-center mb-8 shadow-sm mt-6 ${loading ? "bg-blue-300" : "bg-[#007AFF]"}`}
           >
-            {loading ? <ActivityIndicator color="white" /> : <Text className="text-white text-lg font-bold">Signup</Text>}
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text className="text-white text-lg font-bold">Signup</Text>
+            )}
           </TouchableOpacity>
 
           <View className="items-center mb-6">
@@ -237,28 +314,36 @@ export default function SignUpScreen() {
           {/* Social Logins */}
           <View className="mb-4">
             <TouchableOpacity className="w-full border border-[#FF8A00] py-4 rounded-2xl items-center mb-3">
-              <Text className="text-[#1A202C] text-base font-medium">Continue with Google</Text>
+              <Text className="text-[#1A202C] text-base font-medium">
+                Continue with Google
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity className="w-full border border-[#FF8A00] py-4 rounded-2xl items-center">
-              <Text className="text-[#1A202C] text-base font-medium">Continue with Facebook</Text>
+              <Text className="text-[#1A202C] text-base font-medium">
+                Continue with Facebook
+              </Text>
             </TouchableOpacity>
           </View>
 
           <View className="flex-row justify-center items-center mb-6">
-            <Text className="text-[#1A202C] text-sm">Already have an account? </Text>
+            <Text className="text-[#1A202C] text-sm">
+              Already have an account?{" "}
+            </Text>
             <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
               <Text className="text-[#FF8A00] text-sm font-bold">Login</Text>
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={async () => {
-              await SecureStore.setItemAsync('has_onboarded', 'true');
-              router.push('/(guest)');
+              await SecureStore.setItemAsync("has_onboarded", "true");
+              router.push("/(guest)");
             }}
             className="items-center mb-12"
           >
-            <Text className="text-[#007AFF] text-sm font-bold">Continue as Guest</Text>
+            <Text className="text-[#007AFF] text-sm font-bold">
+              Continue as Guest
+            </Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -273,17 +358,19 @@ export default function SignUpScreen() {
         <View className="flex-1 justify-end bg-black/50">
           <View className="bg-white rounded-t-[40px] p-6 max-h-[70%]">
             <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-xl font-bold text-[#3D2117]">Select Country</Text>
+              <Text className="text-xl font-bold text-[#3D2117]">
+                Select Country
+              </Text>
               <TouchableOpacity onPress={() => setIsModalVisible(false)}>
                 <Ionicons name="close" size={24} color="#3D2117" />
               </TouchableOpacity>
             </View>
-            
+
             <FlatList
               data={COUNTRY_CODES}
               keyExtractor={(item) => item.code}
               renderItem={({ item }) => (
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => {
                     setCountryCode(item);
                     setIsModalVisible(false);
@@ -291,8 +378,12 @@ export default function SignUpScreen() {
                   className="flex-row items-center py-4 border-b border-gray-100"
                 >
                   <Text className="text-2xl mr-4">{item.flag}</Text>
-                  <Text className="flex-1 text-base text-[#1A202C]">{item.name}</Text>
-                  <Text className="text-base font-bold text-[#FF8A00]">{item.code}</Text>
+                  <Text className="flex-1 text-base text-[#1A202C]">
+                    {item.name}
+                  </Text>
+                  <Text className="text-base font-bold text-[#FF8A00]">
+                    {item.code}
+                  </Text>
                 </TouchableOpacity>
               )}
             />

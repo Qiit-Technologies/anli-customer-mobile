@@ -1,18 +1,29 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { authService } from '../../../services/auth';
-import { useAuth } from '../../../context/AuthContext';
-import * as SecureStore from 'expo-secure-store';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { authService } from "../../../services/auth";
+import { useAuth } from "../../../context/AuthContext";
+import { useToast } from "../../../context/ToastContext";
+import * as SecureStore from "expo-secure-store";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function LoginScreen() {
   const router = useRouter();
   const { refreshAuth } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { showToast } = useToast();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<any>({});
@@ -26,13 +37,13 @@ export default function LoginScreen() {
     const newErrors: any = {};
 
     if (!email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!validateEmail(email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = "Please enter a valid email address";
     }
 
     if (!password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required";
     }
 
     setErrors(newErrors);
@@ -45,9 +56,12 @@ export default function LoginScreen() {
     try {
       await authService.login(email, password);
       await refreshAuth(); // update global auth state
-      router.replace('/(tabs)');
+      router.replace("/(tabs)");
     } catch (error: any) {
-      Alert.alert('Login Failed', error?.message || 'Invalid credentials. Please try again.');
+      showToast({
+        message: error?.message || "Invalid credentials. Please try again.",
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -57,12 +71,17 @@ export default function LoginScreen() {
     <SafeAreaView className="flex-1 bg-white">
       <StatusBar style="dark" />
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-6 pt-10">
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          className="px-6 pt-10"
+        >
           <View className="mb-10">
-            <Text className="text-4xl font-bold text-[#3D2117] mb-2">Welcome Back!</Text>
+            <Text className="text-4xl font-bold text-[#3D2117] mb-2">
+              Welcome Back!
+            </Text>
             <Text className="text-[#8E9BAE] text-base">
               To Get started, Sign in into your account
             </Text>
@@ -71,9 +90,11 @@ export default function LoginScreen() {
           <View className="space-y-6">
             {/* Email Field */}
             <View className="mb-6">
-              <Text className="text-[#8E9BAE] text-sm font-medium mb-2">Email Address</Text>
-              <View 
-                className={`w-full border py-4 px-6 rounded-2xl flex-row items-center ${errors.email ? 'border-red-500 bg-red-50/10' : 'border-[#E2E8F0]'}`}
+              <Text className="text-[#8E9BAE] text-sm font-medium mb-2">
+                Email Address
+              </Text>
+              <View
+                className={`w-full h-[50px] border px-6 rounded-2xl flex-row items-center ${errors.email ? "border-red-500 bg-red-50/10" : "border-[#E2E8F0] bg-[#F8FAFC]"}`}
               >
                 <TextInput
                   value={email}
@@ -85,41 +106,63 @@ export default function LoginScreen() {
                   placeholderTextColor="#A0AEC0"
                   autoCapitalize="none"
                   keyboardType="email-address"
-                  className="flex-1 text-base text-gray-800 p-0"
+                  className="flex-1 text-base text-[#1A202C] h-full"
+                  style={{ textAlignVertical: "center", paddingVertical: 0 }}
                 />
               </View>
-              {errors.email && <Text className="text-red-500 text-[10px] mt-1 ml-1 font-medium">{errors.email}</Text>}
+              {errors.email && (
+                <Text className="text-red-500 text-[10px] mt-1 ml-1 font-medium">
+                  {errors.email}
+                </Text>
+              )}
             </View>
 
             {/* Password Field */}
             <View className="mb-2">
-              <Text className="text-[#8E9BAE] text-sm font-medium mb-2">Password</Text>
-              <View 
-                className={`w-full border py-4 px-6 rounded-2xl flex-row items-center ${errors.password ? 'border-red-500 bg-red-50/10' : 'border-[#E2E8F0]'}`}
+              <Text className="text-[#8E9BAE] text-sm font-medium mb-2">
+                Password
+              </Text>
+              <View
+                className={`w-full h-[50px] border px-6 rounded-2xl flex-row items-center ${errors.password ? "border-red-500 bg-red-50/10" : "border-[#E2E8F0] bg-[#F8FAFC]"}`}
               >
                 <TextInput
                   value={password}
                   onChangeText={(text) => {
                     setPassword(text);
-                    if (errors.password) setErrors({ ...errors, password: null });
+                    if (errors.password)
+                      setErrors({ ...errors, password: null });
                   }}
                   placeholder="Enter Password"
                   placeholderTextColor="#A0AEC0"
                   secureTextEntry={!showPassword}
-                  className="flex-1 text-base text-gray-800 p-0"
+                  className="flex-1 text-base text-[#1A202C]"
+                  style={{
+                    height: 50,
+                    textAlignVertical: "center",
+                    paddingVertical: 0,
+                    margin: 0,
+                  }}
                 />
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
                   className="ml-3"
                 >
-                  <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={22} color="#A0AEC0" />
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={22}
+                    color="#A0AEC0"
+                  />
                 </TouchableOpacity>
               </View>
-              {errors.password && <Text className="text-red-500 text-[10px] mt-1 ml-1 font-medium">{errors.password}</Text>}
+              {errors.password && (
+                <Text className="text-red-500 text-[10px] mt-1 ml-1 font-medium">
+                  {errors.password}
+                </Text>
+              )}
             </View>
-            
-            <TouchableOpacity 
-              onPress={() => router.push('/forgot-password')}
+
+            <TouchableOpacity
+              onPress={() => router.push("/forgot-password")}
               className="items-end mb-8"
             >
               <Text className="text-[#4A5568] text-sm">Forgot Password?</Text>
@@ -129,9 +172,13 @@ export default function LoginScreen() {
           <TouchableOpacity
             onPress={handleLogin}
             disabled={loading}
-            className={`w-full py-5 rounded-2xl items-center mb-10 shadow-sm ${loading ? 'bg-blue-300' : 'bg-[#007AFF]'}`}
+            className={`w-full py-5 rounded-2xl items-center mb-10 shadow-sm ${loading ? "bg-blue-300" : "bg-[#007AFF]"}`}
           >
-            {loading ? <ActivityIndicator color="white" /> : <Text className="text-white text-lg font-bold">Login</Text>}
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text className="text-white text-lg font-bold">Login</Text>
+            )}
           </TouchableOpacity>
 
           <View className="items-center mb-6">
@@ -141,28 +188,36 @@ export default function LoginScreen() {
           {/* Social Logins */}
           <View className="mb-4">
             <TouchableOpacity className="w-full border border-[#FF8A00] py-4 rounded-2xl items-center mb-3">
-              <Text className="text-[#1A202C] text-base font-medium">Continue with Google</Text>
+              <Text className="text-[#1A202C] text-base font-medium">
+                Continue with Google
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity className="w-full border border-[#FF8A00] py-4 rounded-2xl items-center">
-              <Text className="text-[#1A202C] text-base font-medium">Continue with Facebook</Text>
+              <Text className="text-[#1A202C] text-base font-medium">
+                Continue with Facebook
+              </Text>
             </TouchableOpacity>
           </View>
 
           <View className="flex-row justify-center items-center mb-6">
-            <Text className="text-[#1A202C] text-sm">Don't have an account? </Text>
-            <TouchableOpacity onPress={() => router.push('/(auth)/signup')}>
+            <Text className="text-[#1A202C] text-sm">
+              Don't have an account?{" "}
+            </Text>
+            <TouchableOpacity onPress={() => router.push("/(auth)/signup")}>
               <Text className="text-[#FF8A00] text-sm font-bold">Signup</Text>
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={async () => {
-              await SecureStore.setItemAsync('has_onboarded', 'true');
-              router.push('/(guest)');
+              await SecureStore.setItemAsync("has_onboarded", "true");
+              router.push("/(guest)");
             }}
             className="items-center mb-12"
           >
-            <Text className="text-[#007AFF] text-sm font-bold">Continue as Guest</Text>
+            <Text className="text-[#007AFF] text-sm font-bold">
+              Continue as Guest
+            </Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

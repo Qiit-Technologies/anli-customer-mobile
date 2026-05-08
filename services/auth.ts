@@ -1,8 +1,8 @@
-import * as SecureStore from 'expo-secure-store';
-import api from './api';
+import * as SecureStore from "expo-secure-store";
+import api from "./api";
 
-const TOKEN_KEY = 'anli_customer_token';
-const USER_KEY = 'anli_customer_user';
+const TOKEN_KEY = "anli_customer_token";
+const USER_KEY = "anli_customer_user";
 
 export interface RegisterData {
   firstName: string;
@@ -13,11 +13,13 @@ export interface RegisterData {
 }
 
 export interface CustomerUser {
-  id: number;
+  id: string;
   firstName: string;
   lastName: string;
   email: string;
   phoneNumber?: string;
+  notificationSettings?: any;
+  securitySettings?: any;
 }
 
 export const authService = {
@@ -26,7 +28,7 @@ export const authService = {
    */
   register: async (data: RegisterData) => {
     try {
-      const response = await api.post('/customers/register', data);
+      const response = await api.post("/customers/register", data);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error.message;
@@ -38,7 +40,10 @@ export const authService = {
    */
   verifyOtp: async (email: string, code: string) => {
     try {
-      const response = await api.post('/customers/verify-otp', { email, otp: code });
+      const response = await api.post("/customers/verify-otp", {
+        email,
+        otp: code,
+      });
       const { access_token, customer } = response.data;
 
       if (access_token) {
@@ -59,7 +64,7 @@ export const authService = {
    */
   resendOtp: async (email: string) => {
     try {
-      const response = await api.post('/customers/resend-otp', { email });
+      const response = await api.post("/customers/resend-otp", { email });
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error.message;
@@ -71,8 +76,8 @@ export const authService = {
    */
   login: async (email: string, password: string) => {
     try {
-      const response = await api.post('/customers/login', { email, password });
-      const { access_token, customer } = response.data;
+      const response = await api.post("/customers/login", { email, password });
+      const { access_token, data: customer } = response.data;
 
       if (access_token) {
         await SecureStore.setItemAsync(TOKEN_KEY, access_token);
@@ -116,5 +121,58 @@ export const authService = {
   logout: async () => {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
     await SecureStore.deleteItemAsync(USER_KEY);
+  },
+
+  /**
+   * Updates customer profile in backend and local storage
+   */
+  updateProfile: async (data: Partial<CustomerUser>) => {
+    try {
+      const response = await api.patch("/customers/profile", data);
+      const updatedUser = response.data.data;
+      if (updatedUser) {
+        await SecureStore.setItemAsync(USER_KEY, JSON.stringify(updatedUser));
+      }
+    } catch (error: any) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  deleteAccount: async () => {
+    try {
+      await api.delete("/customers/profile");
+      await authService.logout();
+    } catch (error: any) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  changePassword: async (oldPassword: string, newPassword: string) => {
+    try {
+      await api.post("/customers/change-password", {
+        oldPassword,
+        newPassword,
+      });
+    } catch (error: any) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  toggleFavorite: async (hotelId: number) => {
+    try {
+      const response = await api.post(`/customers/favorites/${hotelId}`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  getFavorites: async () => {
+    try {
+      const response = await api.get("/customers/favorites");
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error.message;
+    }
   },
 };

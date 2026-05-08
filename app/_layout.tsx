@@ -10,6 +10,7 @@ import '../global.css';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AnimatedSplash } from '@/components/AnimatedSplash';
 import { AuthProvider } from '@/context/AuthContext';
+import { ToastProvider } from '@/context/ToastContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -24,20 +25,22 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <SafeAreaProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          {!isSplashComplete ? (
-            <AnimatedSplash onAnimationComplete={() => setSplashComplete(true)} />
-          ) : (
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(guest)" />
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-            </Stack>
-          )}
-          <StatusBar style="auto" />
-        </ThemeProvider>
+        <ToastProvider>
+          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            {!isSplashComplete ? (
+              <AnimatedSplash onAnimationComplete={() => setSplashComplete(true)} />
+            ) : (
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(guest)" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+              </Stack>
+            )}
+            <StatusBar style="auto" />
+          </ThemeProvider>
+        </ToastProvider>
       </SafeAreaProvider>
     </AuthProvider>
   );

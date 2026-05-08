@@ -44,7 +44,7 @@ const ONBOARDING_DATA = [
 export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
-  const { isLoggedIn, isLoading } = useAuth();
+  const auth = useAuth();
   const [hasOnboarded, setHasOnboarded] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -57,12 +57,12 @@ export default function OnboardingScreen() {
 
   // Redirect if already onboarded or logged in
   useEffect(() => {
-    if (isLoading || hasOnboarded === null) return;
+    if (auth.isLoading || hasOnboarded === null) return;
 
-    if (isLoggedIn || hasOnboarded) {
+    if (auth.isLoggedIn || hasOnboarded) {
       router.replace("/(tabs)");
     }
-  }, [isLoggedIn, isLoading, hasOnboarded]);
+  }, [auth.isLoggedIn, auth.isLoading, hasOnboarded]);
 
   const completeOnboarding = async () => {
     await SecureStore.setItemAsync(HAS_ONBOARDED_KEY, 'true');
