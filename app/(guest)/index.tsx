@@ -14,7 +14,7 @@ export default function GuestStartScreen() {
 
       // Navigate to the next screen
       router.push("/(guest)/location");
-    } catch (error) {
+    } catch (error: any) {
       router.push("/(guest)/location");
     }
   };

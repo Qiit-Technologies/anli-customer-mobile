@@ -66,7 +66,7 @@ export default function HomeScreen() {
       ]);
       setRestaurants(featuredData);
       setFavorites(favoritesData.map((f: any) => f.id));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching home data:", error);
     } finally {
       setLoading(false);
@@ -91,12 +91,12 @@ export default function HomeScreen() {
 
     try {
       await authService.toggleFavorite(hotelId);
-      setFavorites(prev => 
-        prev.includes(hotelId) 
-          ? prev.filter(id => id !== hotelId) 
-          : [...prev, hotelId]
+      setFavorites((prev) =>
+        prev.includes(hotelId)
+          ? prev.filter((id) => id !== hotelId)
+          : [...prev, hotelId],
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error toggling favorite:", error);
     }
   };
@@ -136,7 +136,11 @@ export default function HomeScreen() {
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF8A00" />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FF8A00"
+          />
         }
       >
         {/* Promo Banner */}
@@ -152,7 +156,7 @@ export default function HomeScreen() {
 
         {/* Search Bar */}
         <View className="px-6 mb-6">
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => router.push("/(tabs)/search")}
             className="flex-row items-center border border-[#F1F5F9] py-3.5 px-5 rounded-2xl bg-[#F8FAFC]"
           >
@@ -229,7 +233,7 @@ export default function HomeScreen() {
                         contentFit="cover"
                         transition={500}
                       />
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         onPress={() => handleToggleFavorite(item.id)}
                         className="absolute top-4 right-4 w-9 h-9 items-center justify-center"
                       >

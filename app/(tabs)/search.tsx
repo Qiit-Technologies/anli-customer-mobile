@@ -53,7 +53,7 @@ export default function SearchScreen() {
       try {
         const favData = await authService.getFavorites();
         setFavorites(favData.map((f: any) => f.id));
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching favorites:", error);
       }
     }
@@ -79,7 +79,7 @@ export default function SearchScreen() {
 
         const data = await hotelService.search(query.trim(), filters);
         setResults(data);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Search error:", error);
       } finally {
         setLoading(false);
@@ -111,7 +111,7 @@ export default function SearchScreen() {
           ? prev.filter((id) => id !== hotelId)
           : [...prev, hotelId],
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error toggling favorite:", error);
     }
   };

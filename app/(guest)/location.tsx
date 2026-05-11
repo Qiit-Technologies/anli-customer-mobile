@@ -98,7 +98,7 @@ export default function GuestLocationScreen() {
       });
       setQuery("");
       setResults([]);
-    } catch (error) {
+    } catch (error: any) {
       Alert.alert("Error", "Could not get your current location");
     } finally {
       setLoadingGPS(false);
@@ -237,9 +237,7 @@ export default function GuestLocationScreen() {
             onPress={() => router.replace("/(tabs)")}
             className="w-full bg-[#007AFF] py-5 rounded-2xl items-center shadow-sm mb-6"
           >
-            <Text className="text-white text-lg font-bold">
-              Continue
-            </Text>
+            <Text className="text-white text-lg font-bold">Continue</Text>
           </TouchableOpacity>
         )}
       </View>

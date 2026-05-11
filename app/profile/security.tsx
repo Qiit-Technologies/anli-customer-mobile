@@ -49,7 +49,7 @@ export default function SecurityScreen() {
       });
       await auth.refreshAuth();
       showToast({ message: "Security setting updated", type: "success" });
-    } catch (error) {
+    } catch (error: any) {
       showToast({ message: "Failed to update setting", type: "error" });
       setSecurity(security);
     }
@@ -104,7 +104,7 @@ export default function SecurityScreen() {
               await authService.deleteAccount();
               showToast({ message: "Account deleted", type: "info" });
               router.replace("/(auth)/login");
-            } catch (error) {
+            } catch (error: any) {
               showToast({ message: "Failed to delete account", type: "error" });
             }
           },

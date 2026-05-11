@@ -25,7 +25,7 @@ export default function SavedScreen() {
     try {
       const data = await authService.getFavorites();
       setFavorites(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching favorites:", error);
     } finally {
       setLoading(false);
@@ -46,8 +46,8 @@ export default function SavedScreen() {
     try {
       await authService.toggleFavorite(hotelId);
       // Remove from local list immediately for better UX
-      setFavorites(prev => prev.filter(h => h.id !== hotelId));
-    } catch (error) {
+      setFavorites((prev) => prev.filter((h) => h.id !== hotelId));
+    } catch (error: any) {
       console.error("Error toggling favorite:", error);
     }
   };
@@ -70,32 +70,44 @@ export default function SavedScreen() {
           <Ionicons name="chevron-back" size={24} color="#3D2117" />
         </TouchableOpacity>
         <View>
-          <Text className="text-2xl font-bold text-[#3D2117]">My Favorites</Text>
-          <Text className="text-[#8E9BAE] text-sm">Your preferred dining spots</Text>
+          <Text className="text-2xl font-bold text-[#3D2117]">
+            My Favorites
+          </Text>
+          <Text className="text-[#8E9BAE] text-sm">
+            Your preferred dining spots
+          </Text>
         </View>
       </View>
 
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF8A00" />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FF8A00"
+          />
         }
       >
         <View className="px-6 pt-6 pb-20">
           {favorites.length > 0 ? (
             favorites.map((item) => (
-              <TouchableOpacity 
+              <TouchableOpacity
                 key={item.id}
                 onPress={() => router.push(`/restaurant/${item.id}`)}
                 className="mb-8 bg-white rounded-[32px] overflow-hidden border border-[#F1F5F9] shadow-sm"
               >
                 <View className="h-48 w-full relative">
-                  <Image 
-                    source={{ uri: item.coverImage || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80' }} 
-                    style={{ width: '100%', height: '100%' }}
+                  <Image
+                    source={{
+                      uri:
+                        item.coverImage ||
+                        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80",
+                    }}
+                    style={{ width: "100%", height: "100%" }}
                     contentFit="cover"
                   />
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={() => handleToggleFavorite(item.id)}
                     className="absolute top-4 right-4 w-9 h-9 items-center justify-center"
                   >
@@ -107,13 +119,18 @@ export default function SavedScreen() {
                     />
                   </TouchableOpacity>
                   <View className="absolute bottom-4 left-4 bg-[#3D2117]/80 px-3 py-1.5 rounded-xl">
-                    <Text className="text-white text-[10px] font-bold uppercase tracking-wider">{item.tags?.split(',')[0] || 'Restaurant'}</Text>
+                    <Text className="text-white text-[10px] font-bold uppercase tracking-wider">
+                      {item.tags?.split(",")[0] || "Restaurant"}
+                    </Text>
                   </View>
                 </View>
-                
+
                 <View className="p-5">
                   <View className="flex-row justify-between items-center mb-2">
-                    <Text className="text-xl font-bold text-[#3D2117] flex-1 mr-2" numberOfLines={1}>
+                    <Text
+                      className="text-xl font-bold text-[#3D2117] flex-1 mr-2"
+                      numberOfLines={1}
+                    >
                       {item.name}
                     </Text>
                     <View className="flex-row items-center bg-orange-50 px-2 py-1 rounded-lg">
@@ -122,16 +139,27 @@ export default function SavedScreen() {
                         style={{ width: 12, height: 12 }}
                         contentFit="contain"
                       />
-                      <Text className="text-[10px] font-bold text-[#6B4226] ml-1">{item.rating || '4.5'}/5</Text>
+                      <Text className="text-[10px] font-bold text-[#6B4226] ml-1">
+                        {item.rating || "4.5"}/5
+                      </Text>
                     </View>
                   </View>
-                  
+
                   <View className="flex-row items-center">
-                    <Ionicons name="location-outline" size={14} color="#8E9BAE" />
-                    <Text className="text-xs text-[#8E9BAE] ml-1 flex-1" numberOfLines={1}>
-                      {item.address || 'Victoria Island, Lagos'}
+                    <Ionicons
+                      name="location-outline"
+                      size={14}
+                      color="#8E9BAE"
+                    />
+                    <Text
+                      className="text-xs text-[#8E9BAE] ml-1 flex-1"
+                      numberOfLines={1}
+                    >
+                      {item.address || "Victoria Island, Lagos"}
                     </Text>
-                    <Text className="text-xs font-bold text-[#3D2117] ml-2">$$$</Text>
+                    <Text className="text-xs font-bold text-[#3D2117] ml-2">
+                      $$$
+                    </Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -145,13 +173,16 @@ export default function SavedScreen() {
                 No favorites yet
               </Text>
               <Text className="text-[#8E9BAE] text-center px-10 mb-8">
-                Start exploring and save restaurants you love to find them easily later.
+                Start exploring and save restaurants you love to find them
+                easily later.
               </Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => router.push("/(tabs)/search")}
                 className="bg-[#007AFF] px-8 py-4 rounded-2xl"
               >
-                <Text className="text-white font-bold">Discover Restaurants</Text>
+                <Text className="text-white font-bold">
+                  Discover Restaurants
+                </Text>
               </TouchableOpacity>
             </View>
           )}
